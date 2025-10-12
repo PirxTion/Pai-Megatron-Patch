@@ -73,6 +73,9 @@ def core_gpt_dataset_config_from_args(args):
         mmap_bin_files=args.mmap_bin_files,
         tokenizer=tokenizer,
         create_attention_mask=args.create_attention_mask_in_dataloader,
+        goldfish_loss=getattr(args, "goldfish_loss", None),
+        goldfish_k=getattr(args, "goldfish_k", None),
+        goldfish_h=getattr(args, "goldfish_h", None),
     )
     try:
         return GPTDatasetConfig(
