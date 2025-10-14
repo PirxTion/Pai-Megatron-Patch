@@ -4,6 +4,7 @@ from typing import NoReturn, Optional, Tuple, Union
 import torch
 from torch import Tensor
 
+from megatron.core.activations import XSSS
 from megatron.core.inference.contexts import BaseInferenceContext
 from megatron.core.models.common.embeddings.rope_utils import (
     apply_rotary_pos_emb,
@@ -97,6 +98,8 @@ class GatedSoftmaxAttention(Attention):
             tp_comm_buffer_name='qkv',
             tp_group=self.pg_collection.tp,
         )
+
+        self.xSSS = XSSS(self.config)
 
         if submodules.q_layernorm is not None:
             self.q_layernorm = build_module(
@@ -487,9 +490,9 @@ class GatedSoftmaxAttention(Attention):
         # =================
         # Output. [sq, b, h]
         # =================
-        nvtx_range_push(suffix="sigmoid_gate")
-        core_attn_out = core_attn_out * torch.sigmoid(gate)
-        nvtx_range_pop(suffix="sigmoid_gate")
+        nvtx_range_push(suffix="xSSS_gate")
+        core_attn_out = core_attn_out * self.xSSS(gate)
+        nvtx_range_pop(suffix="xSSS_gate")
 
         nvtx_range_push(suffix="linear_proj")
         output, bias = self.linear_proj(core_attn_out)
