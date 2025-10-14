@@ -222,8 +222,8 @@ class GatedDeltaNetMixer(MegatronModule):
                 nn.init.uniform_(self.conv1d.weight, -self.conv_init, self.conv_init)
 
         # TODO causal conv1d only supports SiLU
-        self.activation = "SiLU"
-        self.act = nn.SiLU(self.config)
+        self.activation = "silu"
+        self.act = nn.SiLU()
 
         self.beta_gating = XSSS(self.config)
 
