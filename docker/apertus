@@ -1,0 +1,29 @@
+FROM nvcr.io/nvidia/pytorch:25.06-py3
+
+ENV NVTE_FRAMEWORK=pytorch
+ENV CAUSAL_CONV1D_FORCE_BUILD=TRUE
+
+COPY driver.py /tmp/driver.py
+RUN cp -r /tmp/driver.py /usr/local/lib/python3.12/dist-packages/triton/backends/nvidia/driver.py && \
+    pip uninstall -y transformer-engine transformer-engine-cu12 transformer-engine-torch && \
+    git clone --recursive https://github.com/NVIDIA/TransformerEngine.git && \
+    cd TransformerEngine && \
+    git submodule update --init --recursive && \
+    git checkout c47f329b2084406093124851a3aeecb935183def && \
+    python setup.py bdist_wheel  -vvv && \
+    cd dist && \
+    pip install transformer_engine-2.8.0.dev0+c47f329b-cp312-cp312-linux_aarch64.whl --no-cache-dir --no-build-isolation -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.cloud.aliyuncs.com && \
+    pip install git+https://github.com/huggingface/transformers.git@5f6e278a5177d8b85945a2cdb6b776dacee34914  -i https://mirrors.aliyun.com/pypi/simple/ && \
+    pip install datasets==3.6.0 packaging==24.2 modelscope -i https://mirrors.aliyun.com/pypi/simple/ && \
+    git clone --branch v2.2.4 https://github.com/state-spaces/mamba.git /tmp/mamba && \
+    cd /tmp/mamba && \
+    pip install -v --no-build-isolation --no-deps . && \
+    git clone https://github.com/Dao-AILab/causal-conv1d.git && \
+    cd causal-conv1d && \
+    git checkout v1.5.2 && \
+    python setup.py bdist_wheel  -vvv && \
+    cd dist && \
+    pip install causal_conv1d-1.5.2-cp312-cp312-linux_aarch64.whl --no-cache-dir --no-build-isolation -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.cloud.aliyuncs.com && \
+    pip install --no-build-isolation  flash-linear-attention -i https://mirrors.aliyun.com/pypi/simple/ && \
+    pip install --upgrade nvidia-nccl-cu12 && \
+    pip install wandb
