@@ -24,5 +24,6 @@ class Qwen3NextTransformerConfig(TransformerConfig):
     head_v_dim: int = 128
     num_k_heads: int = 16
     num_v_heads: int = 32
+    sss_gating: bool = False
 
 
