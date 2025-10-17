@@ -570,4 +570,11 @@ def get_patch_args(parser):
         help="Surround image tokens with tags.",
     )
 
+    group.add_argument(
+        "--sss-gating",
+        type=bool,
+        default=False,
+        help="Use SSS based gating in place of sigmoid gating."
+    )
+
     return parser

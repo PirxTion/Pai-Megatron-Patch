@@ -44,7 +44,7 @@ except ImportError:
     causal_conv1d_update = None
 
 try:
-    # from mamba_ssm.ops.triton.layernorm_gated import RMSNorm as RMSNormGated
+    from mamba_ssm.ops.triton.layernorm_gated import RMSNorm as RMSNormGated
     from mamba_ssm.ops.triton.ssd_combined import (
         mamba_chunk_scan_combined,
         mamba_split_conv1d_scan_combined,
@@ -54,7 +54,7 @@ try:
 except ImportError:
     from unittest.mock import MagicMock
 
-    # RMSNormGated = MagicMock()
+    RMSNormGated = MagicMock()
     HAVE_MAMBA_SSM = False
 
 try:
@@ -225,7 +225,8 @@ class GatedDeltaNetMixer(MegatronModule):
         self.activation = "silu"
         self.act = nn.SiLU()
 
-        self.beta_gating = XSSS(self.config)
+        if self.config.sss_gating:
+            self.beta_gating = XSSS(self.config)
 
         with get_cuda_rng_tracker().fork():
             # Initialize dt bias so that F.softplus(dt_bias) is between dt_min and dt_max
@@ -249,26 +250,28 @@ class GatedDeltaNetMixer(MegatronModule):
         self.D = None
 
         if self.rmsnorm:
-            # assert RMSNormGated is not None
-            # self.norm = RMSNormGated(
-            #     self.config.head_v_dim,
-            #     eps=self.config.layernorm_epsilon,
-            #     norm_before_gate=self.norm_before_gate, # True
-            #     device=torch.cuda.current_device(),
-            #     dtype=config.params_dtype,
-            # )
-            class RMSNorm(nn.Module):
-                def __init__(self, d, eps=1e-6):
-                    super().__init__()
-                    self.weight = nn.Parameter(torch.ones(d))
-                    self.eps = eps
+            if self.config.sss_gating:
+                class RMSNorm(nn.Module):
+                    def __init__(self, d, eps=1e-6):
+                        super().__init__()
+                        self.weight = nn.Parameter(torch.ones(d))
+                        self.eps = eps
 
-                def forward(self, x):
-                    var = x.pow(2).mean(-1, keepdim=True)
-                    return x * torch.rsqrt(var + self.eps) * self.weight
+                    def forward(self, x):
+                        var = x.pow(2).mean(-1, keepdim=True)
+                        return x * torch.rsqrt(var + self.eps) * self.weight
 
-            self.norm = RMSNorm(self.config.head_v_dim, eps=self.config.layernorm_epsilon)
-            self.norm_gating = SSSLU(self.config)
+                self.norm = RMSNorm(self.config.head_v_dim, eps=self.config.layernorm_epsilon)
+                self.norm_gating = SSSLU(self.config)
+            else:
+                assert RMSNormGated is not None
+                self.norm = RMSNormGated(
+                    self.config.head_v_dim,
+                    eps=self.config.layernorm_epsilon,
+                    norm_before_gate=self.norm_before_gate, # True
+                    device=torch.cuda.current_device(),
+                    dtype=config.params_dtype,
+                )
 
         # Assume sequence parallelism: input is partitioned along d_inner and
         # output is partitioned along the sequence dimension
@@ -368,8 +371,11 @@ class GatedDeltaNetMixer(MegatronModule):
         key = key.reshape(key.shape[0], key.shape[1], -1, self.head_k_dim)
         value = value.reshape(value.shape[0], value.shape[1], -1, self.head_v_dim)
 
+        if self.config.sss_gating:
+            beta = self.beta_gating(b)
+        else:
+            beta = b.sigmoid()
 
-        beta = self.beta_gating(b)
         # If the model is loaded in fp16, without the .float() here, A might be -inf
         g = -self.A_log.float().exp() * F.softplus(a.float() + self.dt_bias)
         if self.cp.nheads_local_tpcp // self.cp.ngroups_local_tpcp > 1:
@@ -389,7 +395,10 @@ class GatedDeltaNetMixer(MegatronModule):
 
         if self.rmsnorm:
             #z = self.cp.post_conv_ssm(z)
-            core_attn_out = self.norm(core_attn_out) * self.norm_gating(z)
+            if self.config.sss_gating:
+                core_attn_out = self.norm(core_attn_out) * self.norm_gating(z)
+            else:
+                core_attn_out = self.norm(core_attn_out, z)
 
         y = rearrange(core_attn_out, "b l h p -> l b (h p)").contiguous()
         #y = self.cp.post_conv_ssm(y)

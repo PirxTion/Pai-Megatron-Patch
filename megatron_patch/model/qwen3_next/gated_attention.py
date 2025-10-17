@@ -99,7 +99,8 @@ class GatedSoftmaxAttention(Attention):
             tp_group=self.pg_collection.tp,
         )
 
-        self.xSSS = XSSS(self.config)
+        if self.config.sss_gating:
+            self.xSSS = XSSS(self.config)
 
         if submodules.q_layernorm is not None:
             self.q_layernorm = build_module(
@@ -490,9 +491,14 @@ class GatedSoftmaxAttention(Attention):
         # =================
         # Output. [sq, b, h]
         # =================
-        nvtx_range_push(suffix="xSSS_gate")
-        core_attn_out = core_attn_out * self.xSSS(gate)
-        nvtx_range_pop(suffix="xSSS_gate")
+        if self.config.sss_gating:
+            nvtx_range_push(suffix="xSSS_gate")
+            core_attn_out = core_attn_out * self.xSSS(gate)
+            nvtx_range_pop(suffix="xSSS_gate")
+        else:
+            nvtx_range_push(suffix="sigmoid_gate")
+            core_attn_out = core_attn_out * torch.sigmoid(gate)
+            nvtx_range_pop(suffix="sigmoid_gate")
 
         nvtx_range_push(suffix="linear_proj")
         output, bias = self.linear_proj(core_attn_out)
