@@ -572,7 +572,7 @@ def get_patch_args(parser):
 
     group.add_argument(
         "--sss-gating",
-        type=bool,
+        action="store_true",
         default=False,
         help="Use SSS based gating in place of sigmoid gating."
     )
