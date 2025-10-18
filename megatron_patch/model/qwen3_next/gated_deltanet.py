@@ -251,6 +251,7 @@ class GatedDeltaNetMixer(MegatronModule):
 
         if self.rmsnorm:
             if self.config.sss_gating:
+                # TODO change it to MegatronLM layernorm
                 class RMSNorm(nn.Module):
                     def __init__(self, d, eps=1e-6):
                         super().__init__()
