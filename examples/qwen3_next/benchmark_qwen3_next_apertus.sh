@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --account=a-infra01-1
+#SBATCH --account=infra01
 #SBATCH --job-name=qwen3-next
 #SBATCH --time=11:59:00
 #SBATCH --nodes=8
@@ -7,10 +7,10 @@
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=460000
-#SBATCH --output=/iopsstor/scratch/cscs/%u/MoE/Pai-Megatron-Patch/backends/megatron/Megatron-LM/logs/slurm/training/%x-%j.out
-#SBATCH --error=/iopsstor/scratch/cscs/%u/MoE/Pai-Megatron-Patch/backends/megatron/Megatron-LM/logs/slurm/training/%x-%j.err
+#SBATCH --output=/iopsstor/scratch/cscs/%u/Pai-Megatron-Patch/logs/slurm/training/%x-%j.out
+#SBATCH --error=/iopsstor/scratch/cscs/%u/Pai-Megatron-Patch/logs/slurm/training/%x-%j.err
 #SBATCH --no-requeue
-#SBATCH --environment=/iopsstor/scratch/cscs/ahuang/MoE/Pai-Megatron-Patch/examples/qwen3_next/pytorch_env.toml
+#SBATCH --environment=/iopsstor/scratch/cscs/jsun/Pai-Megatron-Patch/examples/qwen3_next/pytorch_env.toml
 
 # ------------------------------------------------------------------
 # 0.  Environment & bookkeeping
@@ -18,11 +18,11 @@
 set -e
 echo "START TIME: $(date)"
 
-MEGATRON_PATCH_PATH=/iopsstor/scratch/cscs/$USER/MoE/Pai-Megatron-Patch
+MEGATRON_PATCH_PATH=/iopsstor/scratch/cscs/$USER/Pai-Megatron-Patch
 export PYTHONPATH=${MEGATRON_PATCH_PATH}:${MEGATRON_PATCH_PATH}/backends/megatron/Megatron-LM:$PYTHONPATH
 export CUDA_DEVICE_MAX_CONNECTIONS=1
-export HF_TOKEN= # ADD HF_TOKEN
-export HUGGING_FACE_HUB_TOKEN= # ADD HF_TOKEN
+export HF_TOKEN= 
+export HUGGING_FACE_HUB_TOKEN= 
 
 # ------------------------------------------------------------------
 # 1.  SLURM-driven distributed variables
@@ -52,7 +52,7 @@ TRAIN_ITERS=$(( TRAIN_TOKENS / GBS / SEQ_LEN ))
 LR_WARMUP_ITERS=$(( WARMUP_TOKENS / GBS / SEQ_LEN ))
 LR_DECAY_ITERS=$(( TRAIN_TOKENS / GBS / SEQ_LEN ))
 
-WANDB_ENTITY= # Add wandb name
+WANDB_ENTITY=jingxuan-sun-epfl 
 WANDB_PROJECT=qwen3next
 WANDB_EXP_NAME=qwen3_next_benchmark_sss_gating_xssslur2
 
@@ -203,7 +203,7 @@ export MASTER_PORT=25680
 export WORLD_SIZE=$SLURM_NTASKS
 
 # --- let SLURM start the processes -------------------------------
-TRAINING_CMD="python3 -u /iopsstor/scratch/cscs/ahuang/MoE/Pai-Megatron-Patch/examples/qwen3_next/pretrain_qwen3_next.py \
+TRAINING_CMD="python3 -u /iopsstor/scratch/cscs/jsun/Pai-Megatron-Patch/examples/qwen3_next/pretrain_qwen3_next.py \
     ${MODEL_ARGS[@]} \
     ${TRAINING_ARGS[@]} \
     ${INFRA_ARGS[@]} \
