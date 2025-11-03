@@ -53,6 +53,9 @@ LR_WARMUP_ITERS=$(( WARMUP_TOKENS / GBS / SEQ_LEN ))
 LR_DECAY_ITERS=$(( TRAIN_TOKENS / GBS / SEQ_LEN ))
 
 WANDB_ENTITY= # Add wandb name
+WANDB_PROJECT=qwen3next
+WANDB_EXP_NAME=qwen3_next_benchmark_sss_gating_xssslur2_seednorm_softsign
+
 DATASETS="/capstor/store/cscs/swissai/a06/datasets_tokenized/megatron/sai/swissai-fineweb-filterrobots-merge/"
 DATA_PATH=$(python3 ${MEGATRON_PATCH_PATH}/backends/megatron/Megatron-LM/scripts/tools/create_data_config.py -p ${DATASETS})
 
