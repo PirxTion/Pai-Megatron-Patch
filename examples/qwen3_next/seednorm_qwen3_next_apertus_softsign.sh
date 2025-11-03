@@ -21,8 +21,8 @@ echo "START TIME: $(date)"
 MEGATRON_PATCH_PATH=/iopsstor/scratch/cscs/$USER/Pai-Megatron-Patch
 export PYTHONPATH=${MEGATRON_PATCH_PATH}:${MEGATRON_PATCH_PATH}/backends/megatron/Megatron-LM:$PYTHONPATH
 export CUDA_DEVICE_MAX_CONNECTIONS=1
-export HF_TOKEN= 
-export HUGGING_FACE_HUB_TOKEN= 
+export HF_TOKEN= # ADD HF_TOKEN 
+export HUGGING_FACE_HUB_TOKEN= # ADD HF_TOKEN 
 
 # ------------------------------------------------------------------
 # 1.  SLURM-driven distributed variables
@@ -52,7 +52,7 @@ TRAIN_ITERS=$(( TRAIN_TOKENS / GBS / SEQ_LEN ))
 LR_WARMUP_ITERS=$(( WARMUP_TOKENS / GBS / SEQ_LEN ))
 LR_DECAY_ITERS=$(( TRAIN_TOKENS / GBS / SEQ_LEN ))
 
-WANDB_ENTITY=jingxuan-sun-epfl 
+WANDB_ENTITY= # Add wandb name
 WANDB_PROJECT=qwen3next
 WANDB_EXP_NAME=qwen3_next_benchmark_sss_gating_xssslur2_seednorm_softsign
 
